@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CausalBioTwin | Team DIU_Hermits</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --neon-blue: #3b82f6; --neon-green: #10b981; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; scroll-behavior: smooth; overflow-x: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Background Grid Animation */
+        .bg-grid { 
+            background-image: linear-gradient(to right, #1e293b 1px, transparent 1px), linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+            background-size: 50px 50px; opacity: 0.2;
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        }
+        
+        /* Glass Effect */
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* Hover Glows */
+        .glow-card:hover {
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+            transform: translateY(-5px);
+        }
+
+        /* Mobile Menu Animation */
+        #mobile-menu { transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        #mobile-menu.open { max-height: 400px; opacity: 1; }
+    </style>
+</head>
+<body class="relative">
+
+    <!-- Background -->
+    <div class="fixed inset-0 bg-grid -z-10"></div>
+    <div class="fixed top-0 left-0 w-full h-full bg-gradient-to-b from-blue-900/10 to-[#020617] -z-10"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 glass border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center text-white text-2xl shadow-lg">🧬</div>
+                <span class="font-bold text-lg md:text-xl tracking-tight text-white">Causal<span class="text-blue-400">BioTwin</span></span>
+            </div>
+            
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-400">
+                <a href="#about" class="hover:text-white transition">Team</a>
+                <a href="#technology" class="hover:text-white transition">Technology</a>
+                <a href="vision.html" target="_blank" class="text-purple-400 hover:text-purple-300 transition flex items-center">
+                    <i class="ph ph-shooting-star mr-1"></i> Our Vision
+                </a>
+                <a href="#contact" class="hover:text-white transition">Contact</a>
+            </div>
+
+            <!-- Dashboard Button (Desktop) -->
+            <a href="dashboard.html" class="hidden md:flex px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-sm font-bold transition shadow-lg shadow-blue-900/50 items-center group">
+                Launch Dashboard <i class="ph ph-arrow-right ml-2 group-hover:translate-x-1 transition"></i>
+            </a>
+
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="md:hidden text-slate-300 hover:text-white focus:outline-none">
+                <i class="ph ph-list text-3xl"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="md:hidden bg-slate-900/95 border-b border-slate-800">
+            <div class="px-4 py-6 space-y-4 text-center">
+                <a href="#about" class="block text-slate-300 hover:text-white font-medium" onclick="toggleMenu()">Team</a>
+                <a href="#technology" class="block text-slate-300 hover:text-white font-medium" onclick="toggleMenu()">Technology</a>
+                <a href="vision.html" target="_blank" class="block text-purple-400 font-medium" onclick="toggleMenu()">Our Vision</a>
+                <a href="#contact" class="block text-slate-300 hover:text-white font-medium" onclick="toggleMenu()">Contact</a>
+                <div class="pt-4 border-t border-slate-800">
+                    <a href="dashboard.html" class="block w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow-lg">
+                        Launch Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 md:pt-40 pb-12 md:pb-20 px-6 text-center">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-[10px] md:text-xs text-blue-400 mb-6 md:mb-8 font-mono animate-pulse">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> PATENT PENDING 2025
+            </div>
+            <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
+                The First <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Biologically Explainable</span><br>Digital Twin.
+            </h1>
+            <p class="text-base md:text-lg text-slate-400 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-2">
+                Moving beyond "Black Box" AI. We combine Causal Inference with Physiological Simulation to predict patient outcomes with 99% privacy via Federated Learning.
+            </p>
+            <div class="flex flex-col md:flex-row justify-center space-y-3 md:space-y-0 md:space-x-4 px-4">
+                <a href="dashboard.html" class="px-8 py-4 bg-white text-slate-900 rounded-lg font-bold hover:bg-blue-50 transition shadow-xl flex items-center justify-center">
+                    <i class="ph ph-play-circle text-xl mr-2"></i> Try Live Demo
+                </a>
+                <a href="#technology" class="px-8 py-4 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 border border-slate-700 transition">
+                    Read Patent Claims
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Grid -->
+    <section id="technology" class="py-16 md:py-20 max-w-7xl mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <!-- Card 1 -->
+            <div class="p-6 md:p-8 bg-slate-900/50 border border-slate-800 rounded-2xl transition duration-300 glow-card">
+                <div class="w-12 h-12 bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-400 text-2xl mb-4 border border-blue-500/20">🕸️</div>
+                <h3 class="text-xl font-bold text-white mb-2">Causal Inference</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">We don't just find correlations. Our engine builds Directed Acyclic Graphs (DAGs) to understand the <i>cause</i> of disease.</p>
+            </div>
+            <!-- Card 2 -->
+            <div class="p-6 md:p-8 bg-slate-900/50 border border-slate-800 rounded-2xl transition duration-300 glow-card">
+                <div class="w-12 h-12 bg-emerald-900/30 rounded-xl flex items-center justify-center text-emerald-400 text-2xl mb-4 border border-emerald-500/20">🛡️</div>
+                <h3 class="text-xl font-bold text-white mb-2">Federated Privacy</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Patient data never leaves the hospital. We train models locally and aggregate encrypted weights globally.</p>
+            </div>
+            <!-- Card 3 -->
+            <div class="p-6 md:p-8 bg-slate-900/50 border border-slate-800 rounded-2xl transition duration-300 glow-card">
+                <div class="w-12 h-12 bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-400 text-2xl mb-4 border border-purple-500/20">🧠</div>
+                <h3 class="text-xl font-bold text-white mb-2">Bio-Simulation</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">Integrated ODE solvers allow the twin to mimic real biological pathways (Renal, Cardiac, Metabolic).</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Team -->
+    <section id="about" class="py-16 md:py-20 bg-slate-900/30 border-y border-slate-800">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">Meet Team <span class="text-blue-500">DIU_Hermits</span></h2>
+            <p class="text-slate-400 mb-12 max-w-2xl mx-auto">The minds bridging Systems Biology and Artificial Intelligence.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                
+                <!-- Member 1: Susmoy -->
+                <div class="p-6 glass rounded-2xl transition hover:bg-slate-800/50 group relative">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <!-- Replace 'src' below with actual image path e.g. 'images/susmoy.jpg' -->
+                        <img src="Images/susmoy.jpg" class="w-full h-full rounded-full object-cover border-4 border-slate-700 shadow-xl group-hover:border-blue-500 transition">
+                    </div>
+                    <h4 class="text-white font-bold text-lg">Susmoy Biswas</h4>
+                    <p class="text-xs text-blue-400 font-mono mb-4 font-bold uppercase tracking-wide">Lead Researcher & Lead Dev</p>
+                    
+                    <!-- Social Links: Susmoy -->
+                    <div class="flex justify-center space-x-4 border-t border-slate-700/50 pt-4">
+                        <a href="mailto:saukhin15-5647@diu.edu.bd" class="text-slate-500 hover:text-white transition" title="Email"><i class="ph ph-envelope-simple text-xl"></i></a>
+                        <a href="https://www.linkedin.com/in/susmoybiswas47/" target="_blank" class="text-slate-500 hover:text-blue-400 transition" title="LinkedIn"><i class="ph ph-linkedin-logo text-xl"></i></a>
+                        <a href="https://sites.google.com/diu.edu.bd/susmoy-15-5647/home" target="_blank" class="text-slate-500 hover:text-emerald-400 transition" title="Website"><i class="ph ph-globe text-xl"></i></a>
+                    </div>
+                </div>
+
+                <!-- Member 2: Mostafizur -->
+                <div class="p-6 glass rounded-2xl transition hover:bg-slate-800/50 group relative">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <img src="Images/zahid.jpg" class="w-full h-full rounded-full object-cover border-4 border-slate-700 shadow-xl group-hover:border-indigo-500 transition">
+                    </div>
+                    <h4 class="text-white font-bold text-lg">Md. Mostafizur Rahman Zahid</h4>
+                    <p class="text-xs text-indigo-400 font-mono mb-4 font-bold uppercase tracking-wide">Supporting Researcher</p>
+                    
+                    <!-- Social Links: Mostafizur -->
+                    <div class="flex justify-center space-x-4 border-t border-slate-700/50 pt-4"> 
+                        <a href="mailto:zahid15-5209@diu.edu.bd" class="text-slate-500 hover:text-white transition"><i class="ph ph-envelope-simple text-xl"></i></a>
+                        <a href="https://www.linkedin.com/in/mostafizur-zahid/" target="_blank" class="text-slate-500 hover:text-blue-400 transition" title="LinkedIn"><i class="ph ph-linkedin-logo text-xl"></i></a>
+                    </div>
+                </div>
+
+                <!-- Member 3: Foysal -->
+                <div class="p-6 glass rounded-2xl transition hover:bg-slate-800/50 group relative">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <img src="Images/pranto.jpg" class="w-full h-full rounded-full object-cover border-4 border-slate-700 shadow-xl group-hover:border-emerald-500 transition">
+                    </div>
+                    <h4 class="text-white font-bold text-lg">Foysal Ahmed Pranto</h4>
+                    <p class="text-xs text-emerald-400 font-mono mb-4 font-bold uppercase tracking-wide">Supporting Researcher</p>
+                    
+                    <!-- Social Links: Foysal -->
+                    <div class="flex justify-center space-x-4 border-t border-slate-700/50 pt-4"> 
+                        <a href="mailto:pranto2305341671@diu.edu.bd" class="text-slate-500 hover:text-white transition"><i class="ph ph-envelope-simple text-xl"></i></a>
+                        <a href="https://www.linkedin.com/in/foysal-ahmed-pranto-229183350/" target="_blank" class="text-slate-500 hover:text-blue-400 transition" title="LinkedIn"><i class="ph ph-linkedin-logo text-xl"></i></a>
+                
+                    </div>
+                </div>
+
+                <!-- Supervisor: Bijoy -->
+                <div class="p-6 glass rounded-2xl transition hover:bg-slate-800/50 group relative border border-purple-500/30">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <img src="Images/hibijoy.jpg" class="w-full h-full rounded-full object-cover border-4 border-slate-700 shadow-xl group-hover:border-purple-500 transition">
+                    </div>
+                    <h4 class="text-white font-bold text-lg">Md. Hasan Imam Bijoy</h4>
+                    <p class="text-xs text-purple-400 font-mono mb-4 font-bold uppercase tracking-wide">Supervisor</p>
+                    
+                    <!-- Social Links: Bijoy -->
+                    <div class="flex justify-center space-x-4 border-t border-slate-700/50 pt-4">
+                        <a href="mailto:bijoy.cse0411.c@diu.edu.bd" class="text-slate-500 hover:text-white transition"><i class="ph ph-envelope-simple text-xl"></i></a>
+                        <a href="https://sites.google.com/view/hibijoy" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-purple-400 transition"><i class="ph ph-globe text-xl"></i></a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-16 md:py-20 max-w-3xl mx-auto px-6">
+        <div class="bg-slate-800/50 p-8 rounded-2xl border border-slate-700 text-center">
+            <i class="ph ph-stethoscope text-4xl text-blue-400 mb-4"></i>
+            <h2 class="text-2xl font-bold text-white mb-2">Partner with Us</h2>
+            <p class="text-slate-400 mb-6 text-sm">Are you a clinician or researcher? Request a specialized demo.</p>
+            <form class="max-w-md mx-auto space-y-3" onsubmit="event.preventDefault(); alert('Thank you! Team DIU_Hermits will contact you.');">
+                <input type="email" placeholder="Enter your institutional email" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 transition">
+                <button type="submit" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition">Request Access</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 text-center text-slate-600 text-xs border-t border-slate-800">
+        <p>&copy; 2025 CausalBioTwin | Team DIU_Hermits. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // Mobile Menu Logic
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('open');
+        }
+        document.getElementById('mobile-menu-btn').addEventListener('click', toggleMenu);
+    </script>
+
+</body>
+</html>

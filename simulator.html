@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clinical Simulator | CausalBioTwin</title>
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --neon-red: #ef4444; --neon-green: #10b981; --neon-blue: #3b82f6; --neon-orange: #f97316; }
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: #e2e8f0; overflow: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* CRT Monitor Effects */
+        .monitor-screen {
+            background: radial-gradient(circle at center, #111827 0%, #020617 80%);
+            border: 1px solid #1f2937;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+        .scanline {
+            width: 100%; height: 100px; z-index: 10;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(59, 130, 246, 0.1) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.2; position: absolute; bottom: 100%;
+            animation: scanline 8s linear infinite; pointer-events: none;
+        }
+        .screen-flicker { animation: flicker 0.15s infinite; opacity: 0.95; }
+        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100%; } }
+        @keyframes flicker { 0% { opacity: 0.97; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
+        
+        /* Responsive Grid */
+        @media (min-width: 768px) { .monitor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; height: 100%; } }
+        @media (max-width: 767px) { .monitor-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; height: 160px; } }
+
+        /* SVG Interactions */
+        .organ-path { fill: #1f2937; transition: 0.3s; cursor: pointer; stroke: #111827; stroke-width: 1px; }
+        .organ-path:hover { fill: #374151; stroke: #4b5563; }
+        .organ-path.active { fill: #3b82f6; filter: drop-shadow(0 0 8px #3b82f6); stroke: #60a5fa; }
+        .organ-path.active-orange { fill: #f97316; filter: drop-shadow(0 0 8px #f97316); stroke: #fb923c; }
+        .organ-path.active-red { fill: #ef4444; filter: drop-shadow(0 0 8px #ef4444); stroke: #f87171; }
+        .organ-path.critical { fill: #ef4444; filter: drop-shadow(0 0 15px #ef4444); animation: pulse-red 0.5s infinite; stroke: #f87171; }
+        @keyframes pulse-red { 50% { opacity: 0.6; } }
+
+        /* Inputs */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: white; margin-top: -10px; cursor: pointer; box-shadow: 0 0 10px #3b82f6; border: 2px solid #3b82f6; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; }
+        
+        /* Glass UI */
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .glass-active { background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .glass-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+    </style>
+</head>
+<body>
+    <div id="app" class="h-screen flex flex-col">
+        
+        <!-- TOP: VITALS MONITOR -->
+        <header class="bg-black border-b border-slate-800 p-2 md:p-4 z-20 shrink-0 flex flex-col md:flex-row">
+            
+            <!-- Mobile Header (Back & Home) -->
+            <div class="flex md:hidden justify-between items-center p-2 mb-2 border-b border-slate-900">
+                <div class="flex items-center space-x-3">
+                    <a href="dashboard.html" class="text-slate-400 hover:text-white"><i class="ph ph-arrow-left text-xl"></i></a>
+                    <span class="font-bold text-sm text-slate-300">Clinical Simulator</span>
+                </div>
+                <a href="index.html" class="text-slate-400 hover:text-blue-400"><i class="ph ph-house text-xl"></i></a>
+            </div>
+
+            <!-- Vitals Grid -->
+            <div class="flex-1 monitor-grid h-36 md:h-32">
+                <!-- HR Monitor -->
+                <div class="monitor-screen flex flex-col justify-between p-2 screen-flicker">
+                    <div class="scanline"></div>
+                    <div class="flex justify-between items-start relative z-20">
+                        <span class="text-[10px] text-slate-500 font-mono uppercase">ECG / HR</span>
+                        <i class="ph ph-heartbeat text-emerald-500 animate-pulse"></i>
+                    </div>
+                    <canvas ref="hrCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
+                    <div class="text-right z-10 relative">
+                        <div class="text-3xl font-mono font-bold text-emerald-400 shadow-black drop-shadow-md">{{ Math.floor(displayVitals.hr) }}</div>
+                        <div class="text-[9px] text-slate-500">BPM</div>
+                    </div>
+                </div>
+
+                <!-- BP / GLUCOSE Monitor -->
+                <div class="monitor-screen flex flex-col justify-between p-2 screen-flicker">
+                    <div class="scanline"></div>
+                    <div class="flex justify-between items-start relative z-20">
+                        <span class="text-[10px] text-slate-500 font-mono uppercase">{{ currentOrgan === 'Pancreas' ? 'GLUCOSE (mg/dL)' : 'NIBP (mmHg)' }}</span>
+                    </div>
+                    <canvas ref="bpCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
+                    <div class="text-right z-10 relative">
+                        <div class="text-3xl font-mono font-bold text-blue-400 shadow-black drop-shadow-md">
+                            {{ currentOrgan === 'Pancreas' ? Math.floor(displayVitals.bp) : Math.floor(displayVitals.bp) + '/' + Math.floor(displayVitals.bp*0.65) }}
+                        </div>
+                        <div class="text-[9px] text-slate-500">{{ currentOrgan === 'Pancreas' ? 'TARGET: 100' : 'MAP: ' + Math.floor(displayVitals.bp*0.8) }}</div>
+                    </div>
+                </div>
+
+                <!-- SpO2 / HEMOGLOBIN Monitor -->
+                <div class="monitor-screen flex flex-col justify-between p-2 screen-flicker">
+                    <div class="scanline"></div>
+                    <div class="flex justify-between items-start relative z-20">
+                        <span class="text-[10px] text-slate-500 font-mono uppercase">{{ currentOrgan === 'Marrow' ? 'HEMOGLOBIN (g/dL)' : 'SpO2 / PLETH' }}</span>
+                    </div>
+                    <canvas ref="oxyCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
+                    <div class="text-right z-10 relative">
+                        <div class="text-3xl font-mono font-bold shadow-black drop-shadow-md" :class="displayVitals.spo2 < (currentOrgan==='Marrow'?8:90) ? 'text-red-500' : 'text-yellow-400'">
+                            {{ currentOrgan === 'Marrow' ? (displayVitals.spo2/10).toFixed(1) : Math.floor(displayVitals.spo2) + '%' }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Monitor -->
+                <div class="monitor-screen flex flex-col justify-center items-center p-2 text-center" :class="{'bg-red-900/30 border-red-500': isDead}">
+                    <div class="scanline" style="animation-duration: 5s;"></div>
+                    <div class="text-[9px] text-slate-500 font-mono uppercase mb-1 relative z-10">CAUSAL PREDICTION</div>
+                    <div class="text-sm md:text-lg font-bold font-mono relative z-10" :class="statusColor">
+                        {{ simulationState.prediction }}
+                    </div>
+                    <div class="text-[9px] text-slate-400 mt-1 relative z-10">{{ medicalDB[currentOrgan].name }}</div>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation (Back & Home) -->
+            <div class="hidden md:flex items-center px-6 border-l border-slate-800 space-x-3">
+                <a href="index.html" class="p-3 rounded bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Go to Homepage">
+                    <i class="ph ph-house text-xl"></i>
+                </a>
+                <a href="dashboard.html" class="p-3 rounded bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Back to Dashboard">
+                    <i class="ph ph-arrow-left text-xl"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- CENTER: MAIN VISUALIZATION -->
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-900/20 relative">
+            
+            <!-- LEFT: XAI (Desktop) -->
+            <aside class="hidden md:flex w-80 border-r border-slate-800 p-4 flex-col bg-slate-900/80 backdrop-blur z-10">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4">Mechanism of Action</h3>
+                <div class="h-48 bg-black rounded-lg border border-slate-700 relative mb-4 flex items-center justify-center overflow-hidden">
+                    <svg class="absolute inset-0 w-full h-full">
+                        <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#4b5563" /></marker></defs>
+                        <line x1="50%" y1="20%" x2="20%" y2="50%" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)" />
+                        <line x1="50%" y1="20%" x2="80%" y2="50%" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)" />
+                        <line x1="20%" y1="60%" x2="50%" y2="85%" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)" />
+                        <line x1="80%" y1="60%" x2="50%" y2="85%" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)" />
+                    </svg>
+                    <div class="absolute top-2 left-[35%] bg-purple-900/80 border border-purple-500 px-2 py-1 rounded text-[10px] text-white z-10">{{ selectedDrug.name.split(' ')[0] }}</div>
+                    <div class="absolute top-[45%] left-2 bg-slate-800 border border-slate-600 px-2 py-1 rounded text-[10px] text-white z-10">Receptor</div>
+                    <div class="absolute top-[45%] right-2 bg-slate-800 border border-slate-600 px-2 py-1 rounded text-[10px] text-white z-10">Enzyme</div>
+                    <div class="absolute bottom-2 left-[35%] px-2 py-1 rounded text-[10px] font-bold border z-10" :class="statusColor">Outcome</div>
+                </div>
+                <div class="flex-1 bg-black rounded border border-slate-800 p-2 font-mono text-[10px] text-slate-400 overflow-y-auto">
+                    <div v-for="(log, i) in logs" :key="i" class="mb-1 border-l-2 border-slate-700 pl-2" :class="i===0?'text-white font-bold':''">> {{ log }}</div>
+                </div>
+            </aside>
+
+            <!-- CENTER: BODY MAP -->
+            <section class="flex-1 relative flex items-center justify-center">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')] opacity-10"></div>
+                
+                <!-- Mobile Info -->
+                <div class="md:hidden absolute top-4 left-4 bg-black/70 backdrop-blur px-3 py-2 rounded border border-slate-700 text-xs z-10 shadow-lg">
+                    <div class="text-slate-400">Condition:</div>
+                    <div class="font-bold text-white">{{ medicalDB[currentOrgan].name }}</div>
+                </div>
+
+                <div class="relative h-[350px] md:h-[550px] w-full max-w-lg p-4">
+                    <svg viewBox="0 0 100 200" class="h-full w-full drop-shadow-2xl">
+                        <defs>
+                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        <path d="M50,5 C60,5 65,15 65,25 C65,30 75,35 80,50 L90,90 L80,95 L70,55 L70,100 L80,190 L60,195 L55,110 L45,110 L40,195 L20,190 L30,100 L30,55 L20,95 L10,90 L20,50 C25,35 35,30 35,25 C35,15 40,5 50,5 Z" fill="#111827" stroke="#374151" stroke-width="0.5" />
+                        
+                        <!-- Organs & Zones -->
+                        <g @click="selectOrgan('Brain')" :class="getOrganClass('Brain')" class="organ-path"><circle cx="50" cy="15" r="7" /><text x="60" y="15" fill="#4b5563" font-size="4" opacity="0.5">Brain</text></g>
+                        <g @click="selectOrgan('Lungs')" :class="getOrganClass('Lungs')" class="organ-path"><path d="M35,45 Q30,55 35,65 Q45,70 48,55 Q45,45 35,45 Z M65,45 Q70,55 65,65 Q55,70 52,55 Q55,45 65,45 Z" /></g>
+                        <g @click="selectOrgan('Heart')" :class="getOrganClass('Heart')" class="organ-path"><path d="M50,50 q4,-4 8,0 t-8,8 q-8,-8 -8,-8 t8,0" transform="translate(0,5)"/></g>
+                        <g @click="selectOrgan('Liver')" :class="getOrganClass('Liver')" class="organ-path"><path d="M40,75 Q60,70 65,80 Q60,90 45,85 Q35,80 40,75" /></g>
+                        <g @click="selectOrgan('Kidneys')" :class="getOrganClass('Kidneys')" class="organ-path"><ellipse cx="40" cy="90" rx="3" ry="5" transform="rotate(-10,40,90)" /><ellipse cx="60" cy="90" rx="3" ry="5" transform="rotate(10,60,90)" /></g>
+                        <g @click="selectOrgan('Pancreas')" :class="getOrganClass('Pancreas')" class="organ-path"><ellipse cx="55" cy="80" rx="6" ry="2" transform="rotate(-15,55,80)" /></g>
+                        <g @click="selectOrgan('Vessels')" :class="getOrganClass('Vessels')" class="organ-path"><path d="M85,55 L85,90" stroke-width="2" fill="none" stroke="currentColor" /></g>
+                        <g @click="selectOrgan('Marrow')" :class="getOrganClass('Marrow')" class="organ-path"><rect x="70" y="110" width="4" height="30" rx="2" /></g>
+                    </svg>
+                </div>
+            </section>
+        </div>
+
+        <!-- BOTTOM: CONTROLS -->
+        <div class="bg-slate-900/95 border-t border-slate-800 z-30 flex flex-col shrink-0 pb-safe backdrop-blur">
+            <div class="px-6 py-3 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
+                <div class="flex-1 mr-6">
+                    <div class="flex justify-between text-[10px] text-slate-400 uppercase font-bold mb-1">
+                        <span>{{ selectedDrug.name }} Dosage</span>
+                        <span class="text-blue-400 font-mono">{{ dosage }} mg</span>
+                    </div>
+                    <input type="range" v-model="dosage" min="0" max="100" class="w-full" :disabled="isDead">
+                </div>
+                <button @click="resetSim" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded border border-slate-600 transition shadow-lg">
+                    RESET
+                </button>
+            </div>
+
+            <div class="flex-1 p-4 overflow-x-auto flex space-x-3 hide-scrollbar h-36 items-center">
+                <div v-for="drug in currentDrugs" :key="drug.name" 
+                     @click="selectDrug(drug)"
+                     :class="getCardClass(drug)"
+                     class="min-w-[150px] p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-full group relative overflow-hidden shadow-lg">
+                     <div v-if="drug.type==='bad'" class="absolute top-0 right-0 bg-red-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl font-bold shadow">TOXIC</div>
+                     <div class="flex justify-between items-start">
+                        <span class="text-2xl filter drop-shadow-md">{{ drug.icon }}</span>
+                        <div class="w-2 h-2 rounded-full shadow-sm" :class="drug.type==='good'?'bg-emerald-500':drug.type==='bad'?'bg-red-500':'bg-yellow-500'"></div>
+                     </div>
+                     <div>
+                         <div class="font-bold text-white text-xs leading-tight mb-1 group-hover:text-blue-300 transition">{{ drug.name }}</div>
+                         <div class="text-[9px] text-slate-500 leading-tight">{{ drug.mech }}</div>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- EXTENDED MEDICAL DATABASE ---
+        const medicalDB = {
+            'Kidneys': {
+                name: 'Chronic Kidney Disease (CKD)',
+                baseVitals: { hr: 80, bp: 160, spo2: 96, status: 'Hypertensive' },
+                drugs: [
+                    { name: 'Lisinopril', type: 'good', icon: '💊', threshold: 100, mech: 'Vasodilation', effect: { bp: -40, hr: -5, spo2: 0 } },
+                    { name: 'Furosemide', type: 'warning', icon: '💧', threshold: 80, mech: 'Diuretic', effect: { bp: -30, hr: 10, spo2: 0 } },
+                    { name: 'Contrast Dye', type: 'bad', icon: '💉', threshold: 60, mech: 'Nephrotoxic', effect: { bp: -10, hr: 20, spo2: -5 } },
+                    { name: 'NSAIDs (High)', type: 'bad', icon: '☠️', threshold: 50, mech: 'Ischemia', effect: { bp: 10, hr: 0, spo2: 0 } },
+                    { name: 'EPO', type: 'good', icon: '🩸', threshold: 100, mech: 'RBC Boost', effect: { bp: 5, hr: 0, spo2: 2 } }
+                ]
+            },
+            'Heart': {
+                name: 'Heart Failure (CHF)',
+                baseVitals: { hr: 110, bp: 90, spo2: 92, status: 'Decompensated' },
+                drugs: [
+                    { name: 'Carvedilol', type: 'good', icon: '❤️', threshold: 100, mech: 'Beta-Blockade', effect: { bp: -5, hr: -30, spo2: 2 } },
+                    { name: 'Dobutamine', type: 'warning', icon: '⚡', threshold: 70, mech: 'Inotropic', effect: { bp: 20, hr: 20, spo2: 0 } },
+                    { name: 'Digoxin', type: 'good', icon: '🦊', threshold: 90, mech: 'Contractility', effect: { bp: 10, hr: -15, spo2: 1 } },
+                    { name: 'Potassium IV', type: 'bad', icon: '☠️', threshold: 40, mech: 'Hyperkalemia', effect: { bp: -100, hr: -100, spo2: -100 } },
+                    { name: 'Entresto', type: 'good', icon: '💊', threshold: 100, mech: 'ARNI', effect: { bp: -10, hr: -10, spo2: 3 } }
+                ]
+            },
+            'Lungs': {
+                name: 'COVID-19 Pneumonia',
+                baseVitals: { hr: 120, bp: 110, spo2: 85, status: 'Hypoxic' },
+                drugs: [
+                    { name: 'Remdesivir', type: 'good', icon: '🦠', threshold: 100, mech: 'Viral Inhibitor', effect: { bp: 0, hr: -10, spo2: 10 } },
+                    { name: 'Dexamethasone', type: 'good', icon: '💊', threshold: 100, mech: 'Anti-inflammatory', effect: { bp: 5, hr: -5, spo2: 5 } },
+                    { name: 'Oxygen', type: 'good', icon: '💨', threshold: 100, mech: 'FiO2 Boost', effect: { bp: -10, hr: -20, spo2: 14 } },
+                    { name: 'Morphine', type: 'bad', icon: '😴', threshold: 50, mech: 'Resp. Depression', effect: { bp: -20, hr: -10, spo2: -30 } },
+                    { name: 'Tocilizumab', type: 'warning', icon: '💉', threshold: 80, mech: 'IL-6 Inhibitor', effect: { bp: -5, hr: -5, spo2: 5 } }
+                ]
+            },
+            'Pancreas': {
+                name: 'Diabetes Type 2',
+                baseVitals: { hr: 85, bp: 240, spo2: 98, status: 'Hyperglycemic' },
+                drugs: [
+                    { name: 'Metformin', type: 'good', icon: '💊', threshold: 100, mech: 'Insulin Sensitizer', effect: { bp: -100, hr: -5, spo2: 0 } },
+                    { name: 'Insulin', type: 'good', icon: '💉', threshold: 100, mech: 'Glucose Uptake', effect: { bp: -140, hr: 0, spo2: 0 } },
+                    { name: 'Prednisone', type: 'bad', icon: '⚠️', threshold: 50, mech: 'Spikes Glucose', effect: { bp: 100, hr: 10, spo2: 0 } },
+                    { name: 'Glipizide', type: 'warning', icon: '⚡', threshold: 80, mech: 'Hypoglycemia Risk', effect: { bp: -180, hr: 10, spo2: 0 } },
+                    { name: 'Ozempic', type: 'good', icon: '💉', threshold: 100, mech: 'GLP-1 Agonist', effect: { bp: -80, hr: -5, spo2: 0 } }
+                ]
+            },
+            'Vessels': {
+                name: 'Hypertension Crisis',
+                baseVitals: { hr: 100, bp: 210, spo2: 97, status: 'Crisis' },
+                drugs: [
+                    { name: 'Nitroprusside', type: 'good', icon: '📉', threshold: 100, mech: 'Rapid Vasodilation', effect: { bp: -90, hr: 10, spo2: 0 } },
+                    { name: 'Labetalol', type: 'good', icon: '❤️', threshold: 100, mech: 'Alpha/Beta Block', effect: { bp: -60, hr: -20, spo2: 0 } },
+                    { name: 'Ephedrine', type: 'bad', icon: '⬆️', threshold: 40, mech: 'Vasoconstrictor', effect: { bp: 50, hr: 30, spo2: 0 } },
+                    { name: 'Saline Bolus', type: 'bad', icon: '💧', threshold: 60, mech: 'Volume Overload', effect: { bp: 20, hr: 0, spo2: -2 } },
+                    { name: 'Hydralazine', type: 'warning', icon: '💊', threshold: 80, mech: 'Direct Vasodilator', effect: { bp: -50, hr: 20, spo2: 0 } }
+                ]
+            },
+            'Marrow': {
+                name: 'Severe Anemia',
+                baseVitals: { hr: 115, bp: 100, spo2: 60, status: 'Tachycardic' },
+                drugs: [
+                    { name: 'PRBC Transfusion', type: 'good', icon: '🩸', threshold: 100, mech: 'Hb Replacement', effect: { bp: 10, hr: -30, spo2: 50 } },
+                    { name: 'Iron IV', type: 'good', icon: '🔩', threshold: 100, mech: 'Erythropoiesis', effect: { bp: 0, hr: -10, spo2: 20 } },
+                    { name: 'Chemo', type: 'bad', icon: '☠️', threshold: 40, mech: 'Marrow Suppression', effect: { bp: 0, hr: 10, spo2: -30 } },
+                    { name: 'Warfarin', type: 'bad', icon: '🔪', threshold: 50, mech: 'Bleeding Risk', effect: { bp: -10, hr: 20, spo2: -20 } },
+                    { name: 'B12 Injection', type: 'good', icon: '💉', threshold: 100, mech: 'Maturation Factor', effect: { bp: 0, hr: -5, spo2: 10 } }
+                ]
+            },
+            'Liver': {
+                name: 'Liver Failure',
+                baseVitals: { hr: 90, bp: 100, spo2: 97, status: 'Unstable' },
+                drugs: [
+                    { name: 'Lactulose', type: 'good', icon: '🍼', threshold: 100, mech: 'Ammonia Reduc.', effect: { bp: 0, hr: -10, spo2: 0 } },
+                    { name: 'Acetaminophen', type: 'bad', icon: '☠️', threshold: 30, mech: 'Hepatotoxic', effect: { bp: -50, hr: 40, spo2: -10 } },
+                    { name: 'Albumin', type: 'good', icon: '🩸', threshold: 100, mech: 'Oncotic Support', effect: { bp: 15, hr: -5, spo2: 0 } },
+                    { name: 'Alcohol', type: 'bad', icon: '🍷', threshold: 50, mech: 'Necrosis', effect: { bp: 10, hr: 10, spo2: -2 } },
+                    { name: 'Vasopressin', type: 'warning', icon: '⚡', threshold: 80, mech: 'Vasoconstriction', effect: { bp: 30, hr: -10, spo2: -5 } }
+                ]
+            },
+            'Brain': {
+                name: 'Traumatic Brain Injury',
+                baseVitals: { hr: 60, bp: 160, spo2: 99, status: 'Cushing Resp' },
+                drugs: [
+                    { name: 'Mannitol', type: 'good', icon: '🧠', threshold: 100, mech: 'Osmotic Diuretic', effect: { bp: -10, hr: 10, spo2: 0 } },
+                    { name: 'Hypertonic Saline', type: 'good', icon: '🌊', threshold: 100, mech: 'ICP Control', effect: { bp: 5, hr: 5, spo2: 0 } },
+                    { name: 'Neurotoxin', type: 'bad', icon: '☠️', threshold: 20, mech: 'Synaptic Failure', effect: { bp: -150, hr: -60, spo2: -100 } },
+                    { name: 'Propofol', type: 'good', icon: '💤', threshold: 100, mech: 'Metabolic Supp.', effect: { bp: -20, hr: 0, spo2: -2 } },
+                    { name: 'Opioids', type: 'warning', icon: '💉', threshold: 60, mech: 'Masks Signs', effect: { bp: -15, hr: -10, spo2: -5 } }
+                ]
+            }
+        };
+
+        // --- LOGIC ENGINE ---
+        const SimEngine = {
+            lerp: (s, e, f) => s + (e - s) * f,
+            calculateState: (disease, drug, dose) => {
+                const base = disease.baseVitals;
+                const eff = drug.effect;
+                const ratio = dose / 100;
+                
+                let targetHR = base.hr + (eff.hr * ratio);
+                let targetBP = base.bp + (eff.bp * ratio);
+                let targetSpO2 = base.spo2 + (eff.spo2 * ratio);
+                
+                // Clamp values
+                targetSpO2 = Math.min(100, Math.max(0, targetSpO2));
+                targetBP = Math.max(0, targetBP);
+                targetHR = Math.max(0, targetHR);
+
+                let prediction = "STABLE";
+                let fatal = false;
+
+                if (drug.type === 'bad') {
+                    if (dose > drug.threshold) { prediction = "FATAL EVENT"; fatal = true; }
+                    else prediction = `RISK: ${Math.floor(dose)}%`;
+                } else if (drug.type === 'good') {
+                    prediction = `IMPROVING (${Math.floor(dose)}%)`;
+                } else {
+                    prediction = "CAUTION";
+                }
+                return { targetHR, targetBP, targetSpO2, prediction, isFatal: fatal };
+            }
+        };
+
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const currentOrgan = ref('Kidneys');
+                const selectedDrug = ref(medicalDB['Kidneys'].drugs[0]);
+                const dosage = ref(0);
+                const isDead = ref(false);
+                const logs = ref(['System Initialized.']);
+                const displayVitals = ref({ hr: 80, bp: 160, spo2: 96 });
+                const simulationState = ref({ prediction: 'STABLE', isFatal: false });
+
+                const currentDrugs = computed(() => medicalDB[currentOrgan.value].drugs);
+                const statusColor = computed(() => {
+                    if (isDead.value) return 'text-red-500 animate-bounce border-red-500 bg-red-900/50';
+                    if (selectedDrug.value.type === 'good') return 'text-emerald-400 border-emerald-500 bg-emerald-900/20';
+                    if (selectedDrug.value.type === 'bad') return 'text-red-400 border-red-500 bg-red-900/20';
+                    return 'text-yellow-400 border-yellow-500 bg-yellow-900/20';
+                });
+
+                const selectOrgan = (organ) => {
+                    currentOrgan.value = organ;
+                    selectedDrug.value = medicalDB[organ].drugs[0];
+                    resetSim();
+                    logs.value.unshift(`Twin Mapped: ${medicalDB[organ].name}`);
+                };
+
+                const selectDrug = (drug) => {
+                    selectedDrug.value = drug;
+                    dosage.value = 0;
+                    logs.value.unshift(`Selected: ${drug.name}`);
+                };
+
+                const resetSim = () => {
+                    isDead.value = false;
+                    dosage.value = 0;
+                    const base = medicalDB[currentOrgan.value].baseVitals;
+                    displayVitals.value = { ...base };
+                    logs.value = [];
+                };
+
+                const getOrganClass = (organ) => {
+                    if (organ !== currentOrgan.value) return 'organ-path';
+                    if (organ === 'Pancreas') return isDead.value ? 'organ-path critical' : 'organ-path active-orange';
+                    if (organ === 'Vessels') return isDead.value ? 'organ-path critical' : 'organ-path active-red';
+                    return isDead.value ? 'organ-path critical' : 'organ-path active';
+                };
+
+                const getCardClass = (drug) => {
+                    if (selectedDrug.value.name === drug.name) {
+                        if (drug.type === 'good') return "glass-active scale-105 bg-emerald-900/10";
+                        if (drug.type === 'bad') return "glass-danger scale-105 bg-red-900/10";
+                        return "glass-active scale-105 border-yellow-500";
+                    }
+                    return "bg-slate-800/40 border-slate-700 hover:bg-slate-800";
+                };
+
+                // Game Loop
+                setInterval(() => {
+                    if (isDead.value) return;
+                    const res = SimEngine.calculateState(medicalDB[currentOrgan.value], selectedDrug.value, dosage.value);
+                    simulationState.value = res;
+
+                    if (res.isFatal) {
+                        isDead.value = true;
+                        displayVitals.value = { hr: 0, bp: 0, spo2: 0 };
+                        logs.value.unshift("FATAL TOXICITY DETECTED.");
+                        return;
+                    }
+
+                    displayVitals.value.hr = SimEngine.lerp(displayVitals.value.hr, res.targetHR, 0.05);
+                    displayVitals.value.bp = SimEngine.lerp(displayVitals.value.bp, res.targetBP, 0.05);
+                    displayVitals.value.spo2 = SimEngine.lerp(displayVitals.value.spo2, res.targetSpO2, 0.05);
+                    
+                    // Jitter
+                    displayVitals.value.hr += (Math.random() - 0.5) * 0.5;
+                }, 100);
+
+                // Canvas Logic
+                const hrCanvas = ref(null), bpCanvas = ref(null), oxyCanvas = ref(null);
+                
+                const initGraph = (ref, color) => {
+                    const ctx = ref.value.getContext('2d');
+                    let x = 0, y = 50;
+                    const draw = () => {
+                        if (!ref.value) return;
+                        const w = ref.value.width = ref.value.offsetWidth;
+                        const h = ref.value.height = ref.value.offsetHeight;
+                        
+                        ctx.fillStyle = 'rgba(5, 11, 20, 0.15)';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.beginPath();
+                        ctx.strokeStyle = isDead.value ? '#ef4444' : color;
+                        ctx.lineWidth = 2;
+                        
+                        x += 2; if (x > w) x = 0;
+                        
+                        if (isDead.value) y = h / 2;
+                        else {
+                            if (Math.random() > 0.95) y = (h/2) - Math.random() * 30;
+                            else if (Math.random() > 0.95) y = (h/2) + Math.random() * 10;
+                            else y = h / 2;
+                        }
+                        
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                        requestAnimationFrame(draw);
+                    };
+                    draw();
+                };
+
+                onMounted(() => {
+                    initGraph(hrCanvas, '#10b981');
+                    initGraph(bpCanvas, '#3b82f6');
+                    initGraph(oxyCanvas, '#facc15');
+                });
+
+                return {
+                    currentOrgan, selectedDrug, dosage, isDead, logs, displayVitals, simulationState,
+                    currentDrugs, medicalDB, selectOrgan, selectDrug, resetSim, getOrganClass, getCardClass, statusColor,
+                    hrCanvas, bpCanvas, oxyCanvas
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
