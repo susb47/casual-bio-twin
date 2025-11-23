@@ -53,11 +53,18 @@
         .organ-path.critical { fill: #ef4444; filter: drop-shadow(0 0 15px #ef4444); animation: pulse-red 0.5s infinite; stroke: #f87171; }
         @keyframes pulse-red { 50% { opacity: 0.6; } }
 
-        /* Mobile Scroll Fixes */
+        /* Mobile Scroll Fixes - CRITICAL UPDATE */
         .scroll-container {
-            -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+            display: flex;
             overflow-x: auto;
-            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth iOS scroll */
+            scroll-snap-type: x mandatory;
+            touch-action: pan-x; /* Allow horizontal swipe */
+            padding-bottom: 10px; /* Hit area for thumb */
+        }
+        .scroll-item {
+            flex-shrink: 0; /* PREVENTS SQUISHING */
+            scroll-snap-align: start;
         }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -123,13 +130,14 @@
                 <div class="monitor-screen flex flex-col justify-between p-2 screen-flicker">
                     <div class="scanline"></div>
                     <div class="flex justify-between items-start relative z-20">
-                        <span class="text-[10px] text-slate-500 font-mono uppercase">{{ currentOrgan === 'Marrow' ? 'HEMOGLOBIN (g/dL)' : 'SpO2 / PLETH' }}</span>
+                        <span class="text-[10px] text-slate-500 font-mono uppercase">{{ currentOrgan === 'Marrow' ? 'HEMOGLOBIN' : 'SpO2 / PLETH' }}</span>
                     </div>
                     <canvas ref="oxyCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
                     <div class="text-right z-10 relative">
                         <div class="text-3xl font-mono font-bold shadow-black drop-shadow-md" :class="displayVitals.spo2 < (currentOrgan==='Marrow'?8:90) ? 'text-red-500' : 'text-yellow-400'">
                             {{ currentOrgan === 'Marrow' ? (displayVitals.spo2/10).toFixed(1) : Math.floor(displayVitals.spo2) + '%' }}
                         </div>
+                        <div class="text-[9px] text-slate-500" v-if="currentOrgan==='Marrow'">g/dL</div>
                     </div>
                 </div>
 
@@ -211,12 +219,12 @@
                         <g @click="selectOrgan('Pancreas')" :class="getOrganClass('Pancreas')" class="organ-path"><ellipse cx="55" cy="80" rx="6" ry="2" transform="rotate(-15,55,80)" /></g>
                         <g @click="selectOrgan('Vessels')" :class="getOrganClass('Vessels')" class="organ-path"><path d="M85,55 L85,90" stroke-width="2" fill="none" stroke="currentColor" /></g>
                         
-                        <!-- NEW SKELETON/FEMUR BONE (Marrow) -->
+                        <!-- NEW BLOOD/BONE SKELETON (Femur) -->
                         <g @click="selectOrgan('Marrow')" :class="getOrganClass('Marrow')" class="organ-path">
-                            <!-- Femur Representation -->
-                            <path d="M72,110 C75,110 77,112 76,115 L74,140 C73,143 71,143 70,140 L68,115 C67,112 69,110 72,110 Z" />
-                            <!-- Marrow Core (Glows) -->
-                            <line x1="72" y1="115" x2="72" y2="135" stroke-width="2" stroke="currentColor" opacity="0.7" />
+                            <!-- Femur Bone Shape -->
+                            <path d="M75,115 Q78,113 80,115 Q82,117 80,120 L78,145 Q77,148 75,148 Q73,148 72,145 L70,120 Q68,117 70,115 Q72,113 75,115 Z" />
+                            <!-- Core Glow -->
+                            <line x1="75" y1="120" x2="75" y2="140" stroke="currentColor" stroke-width="1.5" opacity="0.8" />
                         </g>
 
                     </svg>
@@ -226,6 +234,7 @@
 
         <!-- BOTTOM: CONTROLS -->
         <div class="bg-slate-900/95 border-t border-slate-800 z-30 flex flex-col shrink-0 pb-safe backdrop-blur">
+            <!-- Slider Bar -->
             <div class="px-6 py-3 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
                 <div class="flex-1 mr-6">
                     <div class="flex justify-between text-[10px] text-slate-400 uppercase font-bold mb-1">
@@ -239,13 +248,15 @@
                 </button>
             </div>
 
-            <!-- SCROLL CONTAINER FIX -->
+            <!-- SCROLL CONTAINER FIX: flex-shrink-0 is key here -->
             <div class="flex-1 p-4 overflow-x-auto scroll-container flex space-x-3 hide-scrollbar h-36 items-center">
                 <div v-for="drug in currentDrugs" :key="drug.name" 
                      @click="selectDrug(drug)"
                      :class="getCardClass(drug)"
-                     class="min-w-[150px] p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-full group relative overflow-hidden shadow-lg flex-shrink-0">
+                     class="scroll-item min-w-[150px] p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-full group relative overflow-hidden shadow-lg">
+                     
                      <div v-if="drug.type==='bad'" class="absolute top-0 right-0 bg-red-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl font-bold shadow">TOXIC</div>
+                     
                      <div class="flex justify-between items-start">
                         <span class="text-2xl filter drop-shadow-md">{{ drug.icon }}</span>
                         <div class="w-2 h-2 rounded-full shadow-sm" :class="drug.type==='good'?'bg-emerald-500':drug.type==='bad'?'bg-red-500':'bg-yellow-500'"></div>
@@ -458,9 +469,24 @@
                     displayVitals.value.hr += (Math.random() - 0.5) * 0.5;
                 }, 100);
 
+                // Initialize Resize Listener
+                onMounted(() => {
+                    window.addEventListener('resize', () => {
+                        // Force re-render canvas on resize to fix "jump" issue
+                        if (hrCanvas.value) initGraph(hrCanvas, '#10b981');
+                        if (bpCanvas.value) initGraph(bpCanvas, '#3b82f6');
+                        if (oxyCanvas.value) initGraph(oxyCanvas, '#facc15');
+                    });
+                    
+                    initGraph(hrCanvas, '#10b981');
+                    initGraph(bpCanvas, '#3b82f6');
+                    initGraph(oxyCanvas, '#facc15');
+                });
+
                 const hrCanvas = ref(null), bpCanvas = ref(null), oxyCanvas = ref(null);
                 
                 const initGraph = (ref, color) => {
+                    if (!ref.value) return;
                     const ctx = ref.value.getContext('2d');
                     let x = 0, y = 50;
                     const draw = () => {
@@ -489,12 +515,6 @@
                     };
                     draw();
                 };
-
-                onMounted(() => {
-                    initGraph(hrCanvas, '#10b981');
-                    initGraph(bpCanvas, '#3b82f6');
-                    initGraph(oxyCanvas, '#facc15');
-                });
 
                 return {
                     currentOrgan, selectedDrug, dosage, isDead, logs, displayVitals, simulationState,
