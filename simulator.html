@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        :root { --neon-red: #ef4444; --neon-green: #10b981; --neon-blue: #3b82f6; --neon-orange: #f97316; }
+        :root { --neon-red: #ef4444; --neon-green: #10b981; --neon-blue: #3b82f6; --neon-orange: #f97316; --neon-purple: #a855f7; }
         body { font-family: 'Inter', sans-serif; background-color: #000; color: #e2e8f0; overflow: hidden; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
@@ -43,11 +43,24 @@
         /* SVG Interactions */
         .organ-path { fill: #1f2937; transition: 0.3s; cursor: pointer; stroke: #111827; stroke-width: 1px; }
         .organ-path:hover { fill: #374151; stroke: #4b5563; }
+        
+        /* Active States */
         .organ-path.active { fill: #3b82f6; filter: drop-shadow(0 0 8px #3b82f6); stroke: #60a5fa; }
-        .organ-path.active-orange { fill: #f97316; filter: drop-shadow(0 0 8px #f97316); stroke: #fb923c; }
-        .organ-path.active-red { fill: #ef4444; filter: drop-shadow(0 0 8px #ef4444); stroke: #f87171; }
+        .organ-path.active-orange { fill: #f97316; filter: drop-shadow(0 0 8px #f97316); stroke: #fb923c; } /* Pancreas */
+        .organ-path.active-red { fill: #ef4444; filter: drop-shadow(0 0 8px #ef4444); stroke: #f87171; } /* Vessels */
+        .organ-path.active-purple { fill: #a855f7; filter: drop-shadow(0 0 8px #a855f7); stroke: #c084fc; } /* Marrow/Bone */
+        
         .organ-path.critical { fill: #ef4444; filter: drop-shadow(0 0 15px #ef4444); animation: pulse-red 0.5s infinite; stroke: #f87171; }
         @keyframes pulse-red { 50% { opacity: 0.6; } }
+
+        /* Mobile Scroll Fixes */
+        .scroll-container {
+            -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+            overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Inputs */
         input[type=range] { -webkit-appearance: none; background: transparent; }
@@ -61,7 +74,7 @@
     </style>
 </head>
 <body>
-    <div id="app" class="h-screen flex flex-col">
+    <div id="app" class="h-screen flex flex-col overflow-hidden">
         
         <!-- TOP: VITALS MONITOR -->
         <header class="bg-black border-b border-slate-800 p-2 md:p-4 z-20 shrink-0 flex flex-col md:flex-row">
@@ -131,7 +144,7 @@
                 </div>
             </div>
 
-            <!-- Desktop Navigation (Back & Home) -->
+            <!-- Desktop Navigation -->
             <div class="hidden md:flex items-center px-6 border-l border-slate-800 space-x-3">
                 <a href="index.html" class="p-3 rounded bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Go to Homepage">
                     <i class="ph ph-house text-xl"></i>
@@ -177,6 +190,7 @@
                 </div>
 
                 <div class="relative h-[350px] md:h-[550px] w-full max-w-lg p-4">
+                    <!-- Interactive SVG Body -->
                     <svg viewBox="0 0 100 200" class="h-full w-full drop-shadow-2xl">
                         <defs>
                             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -184,6 +198,8 @@
                                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
                             </filter>
                         </defs>
+                        
+                        <!-- Body Outline -->
                         <path d="M50,5 C60,5 65,15 65,25 C65,30 75,35 80,50 L90,90 L80,95 L70,55 L70,100 L80,190 L60,195 L55,110 L45,110 L40,195 L20,190 L30,100 L30,55 L20,95 L10,90 L20,50 C25,35 35,30 35,25 C35,15 40,5 50,5 Z" fill="#111827" stroke="#374151" stroke-width="0.5" />
                         
                         <!-- Organs & Zones -->
@@ -194,7 +210,15 @@
                         <g @click="selectOrgan('Kidneys')" :class="getOrganClass('Kidneys')" class="organ-path"><ellipse cx="40" cy="90" rx="3" ry="5" transform="rotate(-10,40,90)" /><ellipse cx="60" cy="90" rx="3" ry="5" transform="rotate(10,60,90)" /></g>
                         <g @click="selectOrgan('Pancreas')" :class="getOrganClass('Pancreas')" class="organ-path"><ellipse cx="55" cy="80" rx="6" ry="2" transform="rotate(-15,55,80)" /></g>
                         <g @click="selectOrgan('Vessels')" :class="getOrganClass('Vessels')" class="organ-path"><path d="M85,55 L85,90" stroke-width="2" fill="none" stroke="currentColor" /></g>
-                        <g @click="selectOrgan('Marrow')" :class="getOrganClass('Marrow')" class="organ-path"><rect x="70" y="110" width="4" height="30" rx="2" /></g>
+                        
+                        <!-- NEW SKELETON/FEMUR BONE (Marrow) -->
+                        <g @click="selectOrgan('Marrow')" :class="getOrganClass('Marrow')" class="organ-path">
+                            <!-- Femur Representation -->
+                            <path d="M72,110 C75,110 77,112 76,115 L74,140 C73,143 71,143 70,140 L68,115 C67,112 69,110 72,110 Z" />
+                            <!-- Marrow Core (Glows) -->
+                            <line x1="72" y1="115" x2="72" y2="135" stroke-width="2" stroke="currentColor" opacity="0.7" />
+                        </g>
+
                     </svg>
                 </div>
             </section>
@@ -215,11 +239,12 @@
                 </button>
             </div>
 
-            <div class="flex-1 p-4 overflow-x-auto flex space-x-3 hide-scrollbar h-36 items-center">
+            <!-- SCROLL CONTAINER FIX -->
+            <div class="flex-1 p-4 overflow-x-auto scroll-container flex space-x-3 hide-scrollbar h-36 items-center">
                 <div v-for="drug in currentDrugs" :key="drug.name" 
                      @click="selectDrug(drug)"
                      :class="getCardClass(drug)"
-                     class="min-w-[150px] p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-full group relative overflow-hidden shadow-lg">
+                     class="min-w-[150px] p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-full group relative overflow-hidden shadow-lg flex-shrink-0">
                      <div v-if="drug.type==='bad'" class="absolute top-0 right-0 bg-red-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl font-bold shadow">TOXIC</div>
                      <div class="flex justify-between items-start">
                         <span class="text-2xl filter drop-shadow-md">{{ drug.icon }}</span>
@@ -235,7 +260,6 @@
     </div>
 
     <script>
-        // --- EXTENDED MEDICAL DATABASE ---
         const medicalDB = {
             'Kidneys': {
                 name: 'Chronic Kidney Disease (CKD)',
@@ -327,7 +351,6 @@
             }
         };
 
-        // --- LOGIC ENGINE ---
         const SimEngine = {
             lerp: (s, e, f) => s + (e - s) * f,
             calculateState: (disease, drug, dose) => {
@@ -339,7 +362,6 @@
                 let targetBP = base.bp + (eff.bp * ratio);
                 let targetSpO2 = base.spo2 + (eff.spo2 * ratio);
                 
-                // Clamp values
                 targetSpO2 = Math.min(100, Math.max(0, targetSpO2));
                 targetBP = Math.max(0, targetBP);
                 targetHR = Math.max(0, targetHR);
@@ -404,6 +426,7 @@
                     if (organ !== currentOrgan.value) return 'organ-path';
                     if (organ === 'Pancreas') return isDead.value ? 'organ-path critical' : 'organ-path active-orange';
                     if (organ === 'Vessels') return isDead.value ? 'organ-path critical' : 'organ-path active-red';
+                    if (organ === 'Marrow') return isDead.value ? 'organ-path critical' : 'organ-path active-purple';
                     return isDead.value ? 'organ-path critical' : 'organ-path active';
                 };
 
@@ -416,7 +439,6 @@
                     return "bg-slate-800/40 border-slate-700 hover:bg-slate-800";
                 };
 
-                // Game Loop
                 setInterval(() => {
                     if (isDead.value) return;
                     const res = SimEngine.calculateState(medicalDB[currentOrgan.value], selectedDrug.value, dosage.value);
@@ -433,11 +455,9 @@
                     displayVitals.value.bp = SimEngine.lerp(displayVitals.value.bp, res.targetBP, 0.05);
                     displayVitals.value.spo2 = SimEngine.lerp(displayVitals.value.spo2, res.targetSpO2, 0.05);
                     
-                    // Jitter
                     displayVitals.value.hr += (Math.random() - 0.5) * 0.5;
                 }, 100);
 
-                // Canvas Logic
                 const hrCanvas = ref(null), bpCanvas = ref(null), oxyCanvas = ref(null);
                 
                 const initGraph = (ref, color) => {
